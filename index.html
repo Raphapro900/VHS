@@ -151,7 +151,7 @@
     frame.castShadow = true;
     tvGroup.add(frame);
     
-    // Pantalla principal
+    // Pantalla
     const screenMat = new THREE.MeshStandardMaterial({ 
       color: 0x050508, 
       emissive: 0x111122, 
@@ -196,43 +196,69 @@
     }
     scene.add(tvGroup);
     
-    // --- Cinta VHS ---
+    // --- Cinta VHS (modelo GLB) ---
     const cintaGroup = new THREE.Group();
-    cintaGroup.position.set(0.7, 0.15, 0.08);
+    cintaGroup.position.set(0.7, 0.05, 0.08);
     scene.add(cintaGroup);
     
     const loader = new GLTFLoader();
     let cintaModel = null;
+    let modeloCargado = false;
     
     loader.load(
       'vhs_tape.glb',
       (gltf) => {
         cintaModel = gltf.scene;
-        cintaModel.scale.set(1.2, 1.2, 1.2);
-        cintaModel.position.y = 0.15;
+        // Escala más grande y posición correcta
+        cintaModel.scale.set(1.8, 1.8, 1.8);
+        cintaModel.position.set(0, 0, 0);
         cintaModel.castShadow = true;
         cintaModel.receiveShadow = true;
         cintaGroup.add(cintaModel);
+        modeloCargado = true;
         console.log('✅ Modelo VHS cargado');
       },
       undefined,
-      () => {
-        console.warn('⚠️ Usando modelo alternativo');
-        const altMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, metalness: 0.1 });
-        const altBody = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.40, 0.20), altMat);
-        altBody.castShadow = true;
-        altBody.receiveShadow = true;
-        cintaGroup.add(altBody);
-        
-        const labelMat = new THREE.MeshStandardMaterial({ color: 0x8a6e4b, roughness: 0.8 });
-        const label = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.24, 0.02), labelMat);
-        label.position.set(0, 0.02, 0.11);
-        cintaGroup.add(label);
+      (error) => {
+        console.warn('⚠️ No se pudo cargar vhs_tape.glb, usando modelo alternativo');
+        crearModeloAlternativo();
       }
     );
     
+    function crearModeloAlternativo() {
+      const altMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, metalness: 0.1 });
+      const altBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.22), altMat);
+      altBody.position.y = 0.22;
+      altBody.castShadow = true;
+      altBody.receiveShadow = true;
+      cintaGroup.add(altBody);
+      
+      const labelMat = new THREE.MeshStandardMaterial({ color: 0x8a6e4b, roughness: 0.8 });
+      const label = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.28, 0.02), labelMat);
+      label.position.set(0, 0.22, 0.12);
+      cintaGroup.add(label);
+      
+      const windowMat = new THREE.MeshStandardMaterial({ 
+        color: 0x2a2a3a, emissive: 0x111122, emissiveIntensity: 0.15, 
+        transparent: true, opacity: 0.5 
+      });
+      const win = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.015), windowMat);
+      win.position.set(0, 0.15, 0.12);
+      cintaGroup.add(win);
+      
+      const reelMat = new THREE.MeshStandardMaterial({ color: 0x444466, roughness: 0.4, metalness: 0.2 });
+      const reelGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.02, 12);
+      const r1 = new THREE.Mesh(reelGeo, reelMat);
+      r1.rotation.x = Math.PI / 2;
+      r1.position.set(-0.06, 0.15, 0.13);
+      cintaGroup.add(r1);
+      const r2 = new THREE.Mesh(reelGeo, reelMat);
+      r2.rotation.x = Math.PI / 2;
+      r2.position.set(0.06, 0.15, 0.13);
+      cintaGroup.add(r2);
+    }
+    
     // --- VIDEOS ---
-    // Función para crear elementos de video
     function crearVideo(src, loop = false) {
       const v = document.createElement('video');
       v.src = src;
@@ -243,21 +269,16 @@
       v.preload = 'auto';
       v.style.display = 'none';
       document.body.appendChild(v);
-      
-      // Forzar carga
       v.load();
-      
       return v;
     }
     
-    // Crear videos
     const vidScreen = crearVideo('videos/Screen.mp4', true);
     const vidNoIn = crearVideo('videos/NoIn.mp4', false);
     const vidTutorial = crearVideo('videos/Tutoriall.mp4', false);
     
-    // Textura para la pantalla
-    let textureActual = null;
     let videoActual = vidScreen;
+    let textureActual = null;
     
     function crearTextura(video) {
       const tex = new THREE.VideoTexture(video);
@@ -267,9 +288,7 @@
       return tex;
     }
     
-    // Configurar material de la pantalla
     function setVideo(video, loop = false) {
-      // Pausar video anterior
       if (videoActual && videoActual !== video) {
         videoActual.pause();
         videoActual.currentTime = 0;
@@ -277,28 +296,30 @@
       
       videoActual = video;
       videoActual.loop = loop;
+      videoActual.currentTime = 0;
       
-      // Crear nueva textura
       const nuevaTex = crearTextura(videoActual);
       screenMesh.material.map = nuevaTex;
       screenMesh.material.needsUpdate = true;
       textureActual = nuevaTex;
       
-      // Reproducir
       videoActual.play().then(() => {
         console.log('▶️ Reproduciendo:', videoActual.src);
       }).catch((e) => {
         console.warn('⚠️ Error al reproducir:', e);
         // Intentar de nuevo con interacción del usuario
-        document.addEventListener('click', function playOnClick() {
+        const playOnClick = () => {
           videoActual.play().catch(() => {});
           document.removeEventListener('click', playOnClick);
-        }, { once: true });
+        };
+        document.addEventListener('click', playOnClick, { once: true });
       });
     }
     
     // Iniciar con Screen.mp4
-    setVideo(vidScreen, true);
+    setTimeout(() => {
+      setVideo(vidScreen, true);
+    }, 100);
     
     // --- Estado ---
     let animando = false;
@@ -311,7 +332,7 @@
     const objIni = new THREE.Vector3(0, 0.35, -0.1);
     let camObj = new THREE.Vector3();
     let objObj = new THREE.Vector3();
-    const cintaPosIni = new THREE.Vector3(0.7, 0.15, 0.08);
+    const cintaPosIni = new THREE.Vector3(0.7, 0.05, 0.08);
     const cintaPosFin = new THREE.Vector3(-0.15, 0.28, 0.08);
     
     function animTV() {
@@ -365,7 +386,7 @@
         if (prog < 1) {
           const posCinta = new THREE.Vector3().lerpVectors(cintaPosIni, cintaPosFin, ease);
           cintaGroup.position.copy(posCinta);
-          if (cintaModel) {
+          if (cintaModel && modeloCargado) {
             cintaModel.rotation.y = ease * 0.4;
           } else {
             cintaGroup.rotation.y = ease * 0.4;
@@ -376,7 +397,7 @@
           camera.lookAt(target);
         } else {
           cintaGroup.position.copy(cintaPosFin);
-          if (cintaModel) {
+          if (cintaModel && modeloCargado) {
             cintaModel.rotation.y = 0.4;
           } else {
             cintaGroup.rotation.y = 0.4;
@@ -427,7 +448,7 @@
           tipoAnimacion = null;
           setVideo(vidScreen, true);
           cintaGroup.position.copy(cintaPosIni);
-          if (cintaModel) {
+          if (cintaModel && modeloCargado) {
             cintaModel.rotation.y = 0;
           } else {
             cintaGroup.rotation.y = 0;
