@@ -134,52 +134,63 @@
     wall.receiveShadow = true;
     scene.add(wall);
     
-    // --- TV ---
+    // --- TV con pantalla tipo reproductor ---
     const tvGroup = new THREE.Group();
     tvGroup.position.set(-0.35, 0.28, -0.1);
     
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.4, metalness: 0.5 });
+    // Cuerpo de la TV
+    const bodyMat = new THREE.MeshStandardMaterial({ 
+      color: 0x181818, 
+      roughness: 0.4, 
+      metalness: 0.5 
+    });
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.52, 0.2), bodyMat);
     body.position.z = 0.02;
     body.castShadow = true;
     body.receiveShadow = true;
     tvGroup.add(body);
     
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.4 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.45, 0.03), frameMat);
+    // Marco
+    const frameMat = new THREE.MeshStandardMaterial({ 
+      color: 0x222222, 
+      roughness: 0.3, 
+      metalness: 0.4 
+    });
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.45, 0.04), frameMat);
     frame.position.set(0, 0.01, 0.13);
     frame.castShadow = true;
     tvGroup.add(frame);
     
-    // Pantalla
+    // Pantalla (reproductor)
     const screenMat = new THREE.MeshStandardMaterial({ 
-      color: 0x050508, 
-      emissive: 0x111122, 
-      emissiveIntensity: 0.05,
+      color: 0x000000,
       roughness: 0.05,
       metalness: 0.95,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      emissive: 0x000000,
+      emissiveIntensity: 0
     });
-    const screenMesh = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.39, 0.015), screenMat);
+    const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.39), screenMat);
     screenMesh.position.set(0, 0.01, 0.15);
     screenMesh.castShadow = false;
     tvGroup.add(screenMesh);
     
-    // Brillo/reflejo
-    const brilloMat = new THREE.MeshStandardMaterial({
+    // Brillo/reflejo de pantalla (efecto de vidrio)
+    const glassMat = new THREE.MeshStandardMaterial({
       color: 0x88ccff,
       emissive: 0x4488ff,
-      emissiveIntensity: 0.03,
+      emissiveIntensity: 0.02,
       transparent: true,
-      opacity: 0.06,
+      opacity: 0.08,
       roughness: 0.0,
       metalness: 1.0,
       side: THREE.DoubleSide
     });
-    const brillo = new THREE.Mesh(new THREE.PlaneGeometry(0.50, 0.34), brilloMat);
-    brillo.position.set(0, 0.01, 0.16);
-    tvGroup.add(brillo);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.37), glassMat);
+    glass.position.set(0, 0.01, 0.16);
+    tvGroup.add(glass);
     
+    // Base
     const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.3 });
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.14, 0.04, 16), baseMat);
     base.position.set(0, -0.28, 0.04);
@@ -187,6 +198,7 @@
     base.receiveShadow = true;
     tvGroup.add(base);
     
+    // Botones
     const btnMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 });
     for (let i = 0; i < 3; i++) {
       const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 8), btnMat);
@@ -194,9 +206,20 @@
       btn.rotation.x = Math.PI / 2;
       tvGroup.add(btn);
     }
+    
+    // LEDs indicadores
+    const ledMat = new THREE.MeshStandardMaterial({
+      color: 0x00ff44,
+      emissive: 0x00ff44,
+      emissiveIntensity: 0.3
+    });
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), ledMat);
+    led.position.set(0.22, -0.22, 0.14);
+    tvGroup.add(led);
+    
     scene.add(tvGroup);
     
-    // --- Cinta VHS (modelo GLB) ---
+    // --- Cinta VHS ---
     const cintaGroup = new THREE.Group();
     cintaGroup.position.set(0.7, 0.05, 0.08);
     scene.add(cintaGroup);
@@ -209,7 +232,6 @@
       'vhs_tape.glb',
       (gltf) => {
         cintaModel = gltf.scene;
-        // Escala más grande y posición correcta
         cintaModel.scale.set(1.8, 1.8, 1.8);
         cintaModel.position.set(0, 0, 0);
         cintaModel.castShadow = true;
@@ -219,8 +241,8 @@
         console.log('✅ Modelo VHS cargado');
       },
       undefined,
-      (error) => {
-        console.warn('⚠️ No se pudo cargar vhs_tape.glb, usando modelo alternativo');
+      () => {
+        console.warn('⚠️ Usando modelo alternativo');
         crearModeloAlternativo();
       }
     );
@@ -237,96 +259,142 @@
       const label = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.28, 0.02), labelMat);
       label.position.set(0, 0.22, 0.12);
       cintaGroup.add(label);
-      
-      const windowMat = new THREE.MeshStandardMaterial({ 
-        color: 0x2a2a3a, emissive: 0x111122, emissiveIntensity: 0.15, 
-        transparent: true, opacity: 0.5 
-      });
-      const win = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.015), windowMat);
-      win.position.set(0, 0.15, 0.12);
-      cintaGroup.add(win);
-      
-      const reelMat = new THREE.MeshStandardMaterial({ color: 0x444466, roughness: 0.4, metalness: 0.2 });
-      const reelGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.02, 12);
-      const r1 = new THREE.Mesh(reelGeo, reelMat);
-      r1.rotation.x = Math.PI / 2;
-      r1.position.set(-0.06, 0.15, 0.13);
-      cintaGroup.add(r1);
-      const r2 = new THREE.Mesh(reelGeo, reelMat);
-      r2.rotation.x = Math.PI / 2;
-      r2.position.set(0.06, 0.15, 0.13);
-      cintaGroup.add(r2);
     }
     
-    // --- VIDEOS ---
-    function crearVideo(src, loop = false) {
-      const v = document.createElement('video');
-      v.src = src;
-      v.loop = loop;
-      v.muted = true;
-      v.playsInline = true;
-      v.crossOrigin = 'anonymous';
-      v.preload = 'auto';
-      v.style.display = 'none';
-      document.body.appendChild(v);
-      v.load();
-      return v;
-    }
-    
-    const vidScreen = crearVideo('videos/Screen.mp4', true);
-    const vidNoIn = crearVideo('videos/NoIn.mp4', false);
-    const vidTutorial = crearVideo('videos/Tutoriall.mp4', false);
-    
-    let videoActual = vidScreen;
-    let textureActual = null;
-    
-    function crearTextura(video) {
-      const tex = new THREE.VideoTexture(video);
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.format = THREE.RGBAFormat;
-      return tex;
-    }
-    
-    function setVideo(video, loop = false) {
-      if (videoActual && videoActual !== video) {
-        videoActual.pause();
-        videoActual.currentTime = 0;
+    // --- REPRODUCTOR DE VIDEO (similar a NoTeRias) ---
+    class VideoPlayer {
+      constructor() {
+        this.video = null;
+        this.texture = null;
+        this.isPlaying = false;
+        this.currentSrc = '';
+        this.onEnded = null;
+        this.onError = null;
       }
       
-      videoActual = video;
-      videoActual.loop = loop;
-      videoActual.currentTime = 0;
+      createVideo(src, loop = false) {
+        const v = document.createElement('video');
+        v.src = src;
+        v.loop = loop;
+        v.muted = true;
+        v.playsInline = true;
+        v.crossOrigin = 'anonymous';
+        v.preload = 'auto';
+        v.style.display = 'none';
+        document.body.appendChild(v);
+        
+        v.addEventListener('ended', () => {
+          if (this.onEnded) this.onEnded();
+        });
+        
+        v.addEventListener('error', (e) => {
+          console.warn('Error en video:', src, e);
+          if (this.onError) this.onError(e);
+        });
+        
+        return v;
+      }
       
-      const nuevaTex = crearTextura(videoActual);
-      screenMesh.material.map = nuevaTex;
-      screenMesh.material.needsUpdate = true;
-      textureActual = nuevaTex;
+      load(src, loop = false) {
+        if (this.video && this.video !== this.video) {
+          this.video.pause();
+          this.video.currentTime = 0;
+        }
+        
+        this.video = this.createVideo(src, loop);
+        this.currentSrc = src;
+        this.isPlaying = false;
+        
+        // Crear textura
+        this.texture = new THREE.VideoTexture(this.video);
+        this.texture.minFilter = THREE.LinearFilter;
+        this.texture.magFilter = THREE.LinearFilter;
+        this.texture.format = THREE.RGBAFormat;
+        
+        return this.texture;
+      }
       
-      videoActual.play().then(() => {
-        console.log('▶️ Reproduciendo:', videoActual.src);
-      }).catch((e) => {
-        console.warn('⚠️ Error al reproducir:', e);
-        // Intentar de nuevo con interacción del usuario
-        const playOnClick = () => {
-          videoActual.play().catch(() => {});
-          document.removeEventListener('click', playOnClick);
-        };
-        document.addEventListener('click', playOnClick, { once: true });
-      });
+      play() {
+        if (!this.video) return;
+        this.video.play().then(() => {
+          this.isPlaying = true;
+          console.log('▶️ Reproduciendo:', this.currentSrc);
+        }).catch((e) => {
+          console.warn('⚠️ Error al reproducir:', e);
+          // Intentar con interacción del usuario
+          const playOnClick = () => {
+            this.video.play().catch(() => {});
+            document.removeEventListener('click', playOnClick);
+          };
+          document.addEventListener('click', playOnClick, { once: true });
+        });
+      }
+      
+      pause() {
+        if (this.video && this.isPlaying) {
+          this.video.pause();
+          this.isPlaying = false;
+        }
+      }
+      
+      stop() {
+        if (this.video) {
+          this.video.pause();
+          this.video.currentTime = 0;
+          this.isPlaying = false;
+        }
+      }
+      
+      getTexture() {
+        return this.texture;
+      }
+      
+      getVideo() {
+        return this.video;
+      }
+      
+      isEnded() {
+        return this.video && this.video.ended;
+      }
+      
+      setOnEnded(callback) {
+        this.onEnded = callback;
+      }
+      
+      setOnError(callback) {
+        this.onError = callback;
+      }
     }
     
-    // Iniciar con Screen.mp4
-    setTimeout(() => {
-      setVideo(vidScreen, true);
-    }, 100);
+    // Crear reproductor
+    const player = new VideoPlayer();
     
-    // --- Estado ---
+    // Cargar video inicial (Screen.mp4)
+    const texScreen = player.load('videos/Screen.mp4', true);
+    screenMesh.material.map = texScreen;
+    screenMesh.material.needsUpdate = true;
+    player.play();
+    
+    // Función para cambiar video en el reproductor
+    function reproducirVideo(src, loop = false, callback = null) {
+      const tex = player.load(src, loop);
+      screenMesh.material.map = tex;
+      screenMesh.material.needsUpdate = true;
+      
+      if (callback) {
+        player.setOnEnded(callback);
+      }
+      
+      player.play();
+    }
+    
+    // --- Estado de la escena ---
     let animando = false;
     let tiempoAnim = 0;
     let tiempoCintaVisible = 0;
     let cintaDesaparecida = false;
     let tipoAnimacion = null;
+    let esperandoFinVideo = false;
     
     const camIni = new THREE.Vector3(0, 0.9, 3.2);
     const objIni = new THREE.Vector3(0, 0.35, -0.1);
@@ -335,14 +403,20 @@
     const cintaPosIni = new THREE.Vector3(0.7, 0.05, 0.08);
     const cintaPosFin = new THREE.Vector3(-0.15, 0.28, 0.08);
     
+    // --- Animaciones ---
     function animTV() {
       if (animando) return;
       animando = true;
       tiempoAnim = 0;
       tipoAnimacion = 'tv';
+      esperandoFinVideo = false;
       camObj.set(-0.35, 0.6, 1.3);
       objObj.set(-0.35, 0.28, -0.1);
-      setVideo(vidNoIn, false);
+      
+      reproducirVideo('videos/NoIn.mp4', false, () => {
+        esperandoFinVideo = true;
+      });
+      
       cintaGroup.visible = true;
       cintaDesaparecida = false;
     }
@@ -353,12 +427,18 @@
       tiempoAnim = 0;
       tiempoCintaVisible = 0;
       tipoAnimacion = 'cinta';
+      esperandoFinVideo = false;
       cintaGroup.position.copy(cintaPosIni);
       cintaGroup.visible = true;
       cintaDesaparecida = false;
-      setVideo(vidTutorial, false);
       camObj.set(-0.35, 0.6, 1.1);
       objObj.set(-0.35, 0.28, -0.1);
+      
+      reproducirVideo('videos/Tutoriall.mp4', false, () => {
+        // Cerrar página cuando termine Tutoriall.mp4
+        window.close();
+        setTimeout(() => { window.location.href = 'about:blank'; }, 300);
+      });
     }
     
     function actualizarAnim(delta) {
@@ -378,7 +458,7 @@
           camera.position.copy(camObj);
           camera.lookAt(objObj);
           
-          if (videoActual && !videoActual.loop && videoActual.ended) {
+          if (esperandoFinVideo && player.isEnded()) {
             regresarCamara();
           }
         }
@@ -413,10 +493,8 @@
             }
           }
           
-          if (videoActual && !videoActual.loop && videoActual.ended) {
-            window.close();
-            setTimeout(() => { window.location.href = 'about:blank'; }, 300);
-            return;
+          if (player.isEnded()) {
+            // El callback de onEnded ya maneja el cierre
           }
         }
       }
@@ -446,7 +524,11 @@
           camera.lookAt(targetFin);
           animando = false;
           tipoAnimacion = null;
-          setVideo(vidScreen, true);
+          esperandoFinVideo = false;
+          
+          // Volver a Screen.mp4
+          reproducirVideo('videos/Screen.mp4', true);
+          
           cintaGroup.position.copy(cintaPosIni);
           if (cintaModel && modeloCargado) {
             cintaModel.rotation.y = 0;
