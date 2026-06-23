@@ -151,34 +151,33 @@
     frame.castShadow = true;
     tvGroup.add(frame);
     
-    // Pantalla con brillo para realismo
+    // Pantalla principal
     const screenMat = new THREE.MeshStandardMaterial({ 
       color: 0x050508, 
       emissive: 0x111122, 
       emissiveIntensity: 0.05,
       roughness: 0.05,
       metalness: 0.95,
-      envMapIntensity: 1.5
+      side: THREE.DoubleSide
     });
-    const screenMesh = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.39, 0.02), screenMat);
+    const screenMesh = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.39, 0.015), screenMat);
     screenMesh.position.set(0, 0.01, 0.15);
     screenMesh.castShadow = false;
     tvGroup.add(screenMesh);
     
-    // Brillo de la pantalla (reflejo)
+    // Brillo/reflejo
     const brilloMat = new THREE.MeshStandardMaterial({
-      color: 0x88bbff,
+      color: 0x88ccff,
       emissive: 0x4488ff,
-      emissiveIntensity: 0.02,
+      emissiveIntensity: 0.03,
       transparent: true,
-      opacity: 0.08,
+      opacity: 0.06,
       roughness: 0.0,
       metalness: 1.0,
       side: THREE.DoubleSide
     });
-    const brillo = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.34), brilloMat);
+    const brillo = new THREE.Mesh(new THREE.PlaneGeometry(0.50, 0.34), brilloMat);
     brillo.position.set(0, 0.01, 0.16);
-    brillo.rotation.y = 0;
     tvGroup.add(brillo);
     
     const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.3 });
@@ -197,7 +196,7 @@
     }
     scene.add(tvGroup);
     
-    // --- Cinta VHS (más grande) ---
+    // --- Cinta VHS ---
     const cintaGroup = new THREE.Group();
     cintaGroup.position.set(0.7, 0.15, 0.08);
     scene.add(cintaGroup);
@@ -209,7 +208,7 @@
       'vhs_tape.glb',
       (gltf) => {
         cintaModel = gltf.scene;
-        cintaModel.scale.set(1.2, 1.2, 1.2); // Más grande
+        cintaModel.scale.set(1.2, 1.2, 1.2);
         cintaModel.position.y = 0.15;
         cintaModel.castShadow = true;
         cintaModel.receiveShadow = true;
@@ -232,7 +231,8 @@
       }
     );
     
-    // --- Videos ---
+    // --- VIDEOS ---
+    // Función para crear elementos de video
     function crearVideo(src, loop = false) {
       const v = document.createElement('video');
       v.src = src;
@@ -240,63 +240,72 @@
       v.muted = true;
       v.playsInline = true;
       v.crossOrigin = 'anonymous';
+      v.preload = 'auto';
       v.style.display = 'none';
       document.body.appendChild(v);
+      
+      // Forzar carga
+      v.load();
+      
       return v;
     }
     
+    // Crear videos
     const vidScreen = crearVideo('videos/Screen.mp4', true);
     const vidNoIn = crearVideo('videos/NoIn.mp4', false);
     const vidTutorial = crearVideo('videos/Tutoriall.mp4', false);
     
-    // Textura inicial con Screen.mp4 en loop
-    const texScreen = new THREE.VideoTexture(vidScreen);
-    texScreen.minFilter = THREE.LinearFilter;
-    texScreen.magFilter = THREE.LinearFilter;
-    screenMesh.material = new THREE.MeshStandardMaterial({
-      map: texScreen,
-      emissive: new THREE.Color(0x224466),
-      emissiveIntensity: 0.15,
-      roughness: 0.1,
-      metalness: 0.9,
-      side: THREE.DoubleSide
-    });
-    
-    // Reproducir Screen.mp4 en loop automáticamente
-    vidScreen.play().catch(() => console.log('Autoplay bloqueado, esperando interacción'));
-    
+    // Textura para la pantalla
+    let textureActual = null;
     let videoActual = vidScreen;
-    let videoActualLoop = true;
     
-    function cambiarVideo(video, loop = false) {
+    function crearTextura(video) {
+      const tex = new THREE.VideoTexture(video);
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.format = THREE.RGBAFormat;
+      return tex;
+    }
+    
+    // Configurar material de la pantalla
+    function setVideo(video, loop = false) {
       // Pausar video anterior
       if (videoActual && videoActual !== video) {
         videoActual.pause();
         videoActual.currentTime = 0;
       }
+      
       videoActual = video;
-      videoActualLoop = loop;
       videoActual.loop = loop;
       
-      const nuevaTex = new THREE.VideoTexture(videoActual);
-      nuevaTex.minFilter = THREE.LinearFilter;
-      nuevaTex.magFilter = THREE.LinearFilter;
+      // Crear nueva textura
+      const nuevaTex = crearTextura(videoActual);
       screenMesh.material.map = nuevaTex;
       screenMesh.material.needsUpdate = true;
+      textureActual = nuevaTex;
       
-      // Actualizar brillo según el video
-      brillo.material.emissiveIntensity = loop ? 0.02 : 0.06;
-      
-      videoActual.play().catch(() => console.log('Error reproduciendo video'));
+      // Reproducir
+      videoActual.play().then(() => {
+        console.log('▶️ Reproduciendo:', videoActual.src);
+      }).catch((e) => {
+        console.warn('⚠️ Error al reproducir:', e);
+        // Intentar de nuevo con interacción del usuario
+        document.addEventListener('click', function playOnClick() {
+          videoActual.play().catch(() => {});
+          document.removeEventListener('click', playOnClick);
+        }, { once: true });
+      });
     }
+    
+    // Iniciar con Screen.mp4
+    setVideo(vidScreen, true);
     
     // --- Estado ---
     let animando = false;
     let tiempoAnim = 0;
     let tiempoCintaVisible = 0;
     let cintaDesaparecida = false;
-    let esperandoFinVideo = false;
-    let tipoAnimacion = null; // 'tv' o 'cinta'
+    let tipoAnimacion = null;
     
     const camIni = new THREE.Vector3(0, 0.9, 3.2);
     const objIni = new THREE.Vector3(0, 0.35, -0.1);
@@ -310,10 +319,9 @@
       animando = true;
       tiempoAnim = 0;
       tipoAnimacion = 'tv';
-      esperandoFinVideo = false;
       camObj.set(-0.35, 0.6, 1.3);
       objObj.set(-0.35, 0.28, -0.1);
-      cambiarVideo(vidNoIn, false);
+      setVideo(vidNoIn, false);
       cintaGroup.visible = true;
       cintaDesaparecida = false;
     }
@@ -324,11 +332,10 @@
       tiempoAnim = 0;
       tiempoCintaVisible = 0;
       tipoAnimacion = 'cinta';
-      esperandoFinVideo = false;
       cintaGroup.position.copy(cintaPosIni);
       cintaGroup.visible = true;
       cintaDesaparecida = false;
-      cambiarVideo(vidTutorial, false);
+      setVideo(vidTutorial, false);
       camObj.set(-0.35, 0.6, 1.1);
       objObj.set(-0.35, 0.28, -0.1);
     }
@@ -342,7 +349,6 @@
       const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
       
       if (tipoAnimacion === 'tv') {
-        // Animación de cámara para TV
         if (prog < 1) {
           camera.position.lerpVectors(camIni, camObj, ease);
           const target = new THREE.Vector3().lerpVectors(objIni, objObj, ease);
@@ -351,13 +357,11 @@
           camera.position.copy(camObj);
           camera.lookAt(objObj);
           
-          // Esperar a que termine NoIn.mp4
           if (videoActual && !videoActual.loop && videoActual.ended) {
             regresarCamara();
           }
         }
       } else if (tipoAnimacion === 'cinta') {
-        // Animación de cinta + cámara
         if (prog < 1) {
           const posCinta = new THREE.Vector3().lerpVectors(cintaPosIni, cintaPosFin, ease);
           cintaGroup.position.copy(posCinta);
@@ -380,7 +384,6 @@
           camera.position.copy(camObj);
           camera.lookAt(objObj);
           
-          // Después de 1 segundo, desaparecer la cinta
           if (!cintaDesaparecida) {
             tiempoCintaVisible += delta;
             if (tiempoCintaVisible >= 1.0) {
@@ -389,9 +392,7 @@
             }
           }
           
-          // Esperar a que termine Tutoriall.mp4
           if (videoActual && !videoActual.loop && videoActual.ended) {
-            // Cerrar página
             window.close();
             setTimeout(() => { window.location.href = 'about:blank'; }, 300);
             return;
@@ -424,8 +425,7 @@
           camera.lookAt(targetFin);
           animando = false;
           tipoAnimacion = null;
-          // Volver a Screen.mp4 en loop
-          cambiarVideo(vidScreen, true);
+          setVideo(vidScreen, true);
           cintaGroup.position.copy(cintaPosIni);
           if (cintaModel) {
             cintaModel.rotation.y = 0;
