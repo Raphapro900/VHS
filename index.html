@@ -5,50 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Amanda the Adventurer</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #0a0808; font-family: 'Segoe UI', sans-serif; }
-    #message {
-      position: absolute;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
-      background: rgba(0,0,0,0.7);
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 16px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s;
-      border: 1px solid rgba(255,215,150,0.2);
-      backdrop-filter: blur(4px);
-      z-index: 10;
-    }
-    #message.visible { opacity: 1; }
+    body { margin: 0; overflow: hidden; background: #0a0808; }
     #vhsCrosshair {
       position: absolute;
       bottom: 60px;
       left: 50%;
       transform: translateX(-50%);
-      color: rgba(255,215,150,0.4);
-      font-size: 14px;
+      color: rgba(255,215,150,0.3);
+      font-size: 13px;
       letter-spacing: 2px;
       pointer-events: none;
       z-index: 10;
-      text-shadow: 0 0 20px rgba(255,215,150,0.1);
+      text-shadow: 0 0 20px rgba(255,215,150,0.05);
       display: block;
+      font-family: 'Segoe UI', sans-serif;
     }
     #vhsCrosshair span {
       display: inline-block;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.4);
       padding: 6px 16px;
       border-radius: 20px;
-      border: 1px solid rgba(255,215,150,0.1);
+      border: 1px solid rgba(255,215,150,0.05);
     }
   </style>
 </head>
 <body>
-  <div id="message">📺 Mensaje</div>
-  <div id="vhsCrosshair"><span>📼 Click en la TV o la cinta VHS</span></div>
+  <div id="vhsCrosshair"><span>📼 CLICK EN TV O CINTA</span></div>
 
   <script type="importmap">
     {
@@ -63,18 +45,8 @@
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     
-    // --- ELEMENTOS UI ---
-    const messageEl = document.getElementById('message');
+    // --- UI ---
     const crosshairEl = document.getElementById('vhsCrosshair');
-    
-    function showMessage(text) {
-      messageEl.textContent = text;
-      messageEl.classList.add('visible');
-      clearTimeout(messageEl._timeout);
-      messageEl._timeout = setTimeout(() => {
-        messageEl.classList.remove('visible');
-      }, 2000);
-    }
     
     // --- ESCENA ---
     const scene = new THREE.Scene();
@@ -195,82 +167,101 @@
     wall.receiveShadow = true;
     scene.add(wall);
     
-    // --- TV GROUP ---
+    // ============================================================
+    // TV MEJORADA PARA REPRODUCCIÓN DE VIDEOS
+    // ============================================================
     const tvGroup = new THREE.Group();
     tvGroup.position.set(-0.35, 0.28, -0.1);
     
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.4, metalness: 0.5 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.52, 0.2), bodyMat);
+    // Cuerpo principal de la TV (más detallado)
+    const bodyMat = new THREE.MeshStandardMaterial({ 
+      color: 0x1a1a1a, 
+      roughness: 0.3, 
+      metalness: 0.6 
+    });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.56, 0.22), bodyMat);
     body.position.z = 0.02;
     body.castShadow = true;
     body.receiveShadow = true;
     tvGroup.add(body);
     
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.4 });
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.45, 0.04), frameMat);
+    // Marco frontal
+    const frameMat = new THREE.MeshStandardMaterial({ 
+      color: 0x222222, 
+      roughness: 0.2, 
+      metalness: 0.5 
+    });
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.48, 0.05), frameMat);
     frame.position.set(0, 0.01, 0.13);
     frame.castShadow = true;
     tvGroup.add(frame);
     
-    // Pantalla (donde se reproducen los videos)
+    // Panel de la pantalla (donde se renderiza el video)
     const screenMat = new THREE.MeshStandardMaterial({ 
       color: 0x000000,
       roughness: 0.05,
       metalness: 0.95,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      emissive: 0x000000,
+      emissiveIntensity: 0
     });
-    const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.39), screenMat);
-    tvScreen.position.set(0, 0.01, 0.15);
+    const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.40), screenMat);
+    tvScreen.position.set(0, 0.01, 0.155);
     tvScreen.castShadow = false;
     tvGroup.add(tvScreen);
     
-    // Brillo/reflejo de pantalla
+    // Efecto de vidrio/reflejo
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x88ccff,
       emissive: 0x4488ff,
-      emissiveIntensity: 0.02,
+      emissiveIntensity: 0.03,
       transparent: true,
-      opacity: 0.06,
+      opacity: 0.08,
       roughness: 0.0,
       metalness: 1.0,
       side: THREE.DoubleSide
     });
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.37), glassMat);
-    glass.position.set(0, 0.01, 0.16);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.38), glassMat);
+    glass.position.set(0, 0.01, 0.165);
     tvGroup.add(glass);
     
     // Luz de la TV (efecto de iluminación)
-    const tvLight = new THREE.PointLight(0x4488ff, 0.5, 2);
-    tvLight.position.set(0, 0.01, 0.3);
+    const tvLight = new THREE.PointLight(0x4488ff, 0.3, 1.5);
+    tvLight.position.set(0, 0.01, 0.4);
     tvGroup.add(tvLight);
     
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.3 });
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.14, 0.04, 16), baseMat);
-    base.position.set(0, -0.28, 0.04);
+    // Base con más detalle
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.3 });
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.05, 20), baseMat);
+    base.position.set(0, -0.30, 0.04);
     base.castShadow = true;
     base.receiveShadow = true;
     tvGroup.add(base);
     
-    const btnMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 });
+    // Botones frontales
+    const btnMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 });
     for (let i = 0; i < 3; i++) {
-      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 8), btnMat);
-      btn.position.set(-0.24 + i * 0.06, -0.23, 0.14);
+      const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.015, 8), btnMat);
+      btn.position.set(-0.25 + i * 0.06, -0.24, 0.145);
       btn.rotation.x = Math.PI / 2;
       tvGroup.add(btn);
     }
     
+    // LED de encendido
     const ledMat = new THREE.MeshStandardMaterial({
       color: 0x00ff44,
       emissive: 0x00ff44,
-      emissiveIntensity: 0.3
+      emissiveIntensity: 0.4
     });
-    const led = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), ledMat);
-    led.position.set(0.22, -0.22, 0.14);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.01, 8, 8), ledMat);
+    led.position.set(0.26, -0.24, 0.145);
     tvGroup.add(led);
     
     scene.add(tvGroup);
     
-    // --- VHS GROUP (cinta en el suelo) ---
+    // ============================================================
+    // CINTA VHS EN EL SUELO
+    // ============================================================
     const vhsGroup = new THREE.Group();
     vhsGroup.position.set(0.7, 0.05, 0.08);
     scene.add(vhsGroup);
@@ -308,13 +299,14 @@
       }
     );
     
-    // --- VHS EN LA MANO (cuando se recoge) ---
+    // ============================================================
+    // CINTA EN LA MANO (CUANDO SE RECOGE)
+    // ============================================================
     const handVHSGroup = new THREE.Group();
-    handVHSGroup.position.set(0.3, 0.15, 0.3);
+    handVHSGroup.position.set(0.35, 0.2, 0.35);
     handVHSGroup.visible = false;
     scene.add(handVHSGroup);
     
-    // Copiar el modelo cuando se cargue
     loader.load(
       'vhs_tape.glb',
       (gltf) => {
@@ -335,7 +327,7 @@
     );
     
     // ============================================================
-    // SISTEMA DE VIDEO PARA LA TV (VHS)
+    // SISTEMA DE VIDEO
     // ============================================================
     
     let videoElement = null;
@@ -350,6 +342,11 @@
     let camStartTarget = new THREE.Vector3();
     let camEndTarget = new THREE.Vector3();
     let isReturning = false;
+    let animacionCintaActiva = false;
+    let tiempoCintaAnim = 0;
+    let cintaPosInicial = new THREE.Vector3();
+    let cintaPosFinal = new THREE.Vector3();
+    let cintaDesaparecida = false;
     
     // Crear elemento de video
     function createVideoElement(src, loop = true) {
@@ -377,9 +374,9 @@
         tvScreen.material = new THREE.MeshStandardMaterial({
             map: videoTexture,
             emissive: new THREE.Color(0x4488ff),
-            emissiveIntensity: 0.3,
-            roughness: 0.2,
-            metalness: 0.1,
+            emissiveIntensity: 0.35,
+            roughness: 0.1,
+            metalness: 0.9,
             side: THREE.DoubleSide
         });
     
@@ -387,7 +384,7 @@
         isPlaying = true;
     }
     
-    // Reproducir Screen.mp4 en loop (pantalla de inicio)
+    // Screen.mp4 - loop infinito
     function playScreenLoop() {
         if (videoElement) {
             videoElement.pause();
@@ -400,7 +397,7 @@
         crosshairEl.style.display = 'block';
     }
     
-    // Reproducir NoIn.mp4 (sin cinta)
+    // NoIn.mp4 - una vez, luego vuelve a Screen.mp4
     function playNoIn() {
         if (videoElement) {
             videoElement.pause();
@@ -412,14 +409,16 @@
         
         videoElement.addEventListener('ended', function onEnd() {
             videoElement.removeEventListener('ended', onEnd);
-            // Volver a la posición normal de cámara
             startCameraReturn();
+            setTimeout(() => {
+                playScreenLoop();
+            }, 300);
         });
         
-        videoElement.play().catch(() => { startCameraReturn(); });
+        videoElement.play().catch(() => { startCameraReturn(); playScreenLoop(); });
     }
     
-    // Reproducir Tutoriall.mp4 (con cinta)
+    // Tutoriall.mp4 - una vez, luego vuelve a Screen.mp4
     function playTutorial() {
         if (videoElement) {
             videoElement.pause();
@@ -431,18 +430,27 @@
         
         videoElement.addEventListener('ended', function onEnd() {
             videoElement.removeEventListener('ended', onEnd);
-            // Cerrar la página
-            showMessage('📼 Tutorial finalizado');
+            isWatching = false;
+            crosshairEl.style.display = 'block';
+            startCameraReturn();
             setTimeout(() => {
-                window.close();
-                window.location.href = 'about:blank';
-            }, 1000);
+                playScreenLoop();
+            }, 300);
+            if (hasVHS) {
+                handVHSGroup.visible = true;
+            }
         });
         
-        videoElement.play().catch(() => {});
+        videoElement.play().catch(() => { playScreenLoop(); });
     }
     
-    // --- ANIMACIÓN DE CÁMARA ---
+    // Iniciar con Screen.mp4
+    setTimeout(playScreenLoop, 500);
+    
+    // ============================================================
+    // ANIMACIÓN DE CÁMARA
+    // ============================================================
+    
     function animateCameraTo(targetPos, targetLook, duration = 1.2) {
         cameraAnimating = true;
         camAnimTime = 0;
@@ -486,7 +494,6 @@
             cameraAnimating = false;
             if (isReturning) {
                 isReturning = false;
-                // Si no tiene VHS y no está en modo tutorial, mostrar crosshair
                 if (!isWatching) {
                     crosshairEl.style.display = 'block';
                 }
@@ -495,11 +502,76 @@
     }
     
     // ============================================================
-    // INTERACCIÓN CON LA TV (CLICK)
+    // ANIMACIÓN DE LA CINTA (CUANDO SE CLICKEA)
+    // ============================================================
+    
+    function iniciarAnimacionCinta() {
+        if (animacionCintaActiva || !hasVHS) return;
+        if (isWatching) return;
+        
+        animacionCintaActiva = true;
+        tiempoCintaAnim = 0;
+        cintaDesaparecida = false;
+        
+        // Guardar posiciones
+        cintaPosInicial.copy(handVHSGroup.position);
+        cintaPosFinal.set(-0.15, 0.28, 0.08);
+        
+        // Ocultar la cinta de la mano
+        handVHSGroup.visible = false;
+        
+        // Mostrar la cinta en el suelo (si estaba oculta)
+        vhsGroup.visible = true;
+        vhsGroup.position.set(0.7, 0.05, 0.08);
+    }
+    
+    function actualizarAnimacionCinta(delta) {
+        if (!animacionCintaActiva) return;
+        
+        tiempoCintaAnim += delta;
+        const duracion = 1.2;
+        let progreso = Math.min(tiempoCintaAnim / duracion, 1);
+        const ease = progreso < 0.5 ? 2 * progreso * progreso : 1 - Math.pow(-2 * progreso + 2, 2) / 2;
+        
+        if (progreso < 1) {
+            // Mover la cinta desde la mano hacia la TV
+            const posCinta = new THREE.Vector3().lerpVectors(
+                new THREE.Vector3(0.35, 0.2, 0.35),
+                cintaPosFinal,
+                ease
+            );
+            vhsGroup.position.copy(posCinta);
+            vhsGroup.rotation.y = ease * 0.4;
+        } else {
+            // Llegó a la TV
+            vhsGroup.position.copy(cintaPosFinal);
+            vhsGroup.rotation.y = 0.4;
+            
+            // Después de 0.5 segundos, desaparecer la cinta
+            if (!cintaDesaparecida) {
+                setTimeout(() => {
+                    vhsGroup.visible = false;
+                    cintaDesaparecida = true;
+                    
+                    // Reproducir Tutorial
+                    isWatching = true;
+                    crosshairEl.style.display = 'none';
+                    playTutorial();
+                    
+                    animacionCintaActiva = false;
+                }, 500);
+            }
+        }
+    }
+    
+    // ============================================================
+    // INTERACCIÓN CON LA TV
     // ============================================================
     
     renderer.domElement.addEventListener('click', (e) => {
-        if (cameraAnimating || isWatching) return;
+        if (cameraAnimating) return;
+        if (isWatching) return;
+        if (animacionCintaActiva) return;
         
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -514,29 +586,19 @@
         
         const tvIntersects = raycaster.intersectObjects(tvMeshes);
         if (tvIntersects.length > 0) {
+            // Animar cámara hacia la TV
+            animateCameraTo(
+                new THREE.Vector3(-0.35, 0.6, 1.3),
+                new THREE.Vector3(-0.35, 0.28, -0.1)
+            );
+            
             if (hasVHS) {
-                // Tiene cinta -> reproducir Tutoriall.mp4
-                showMessage('📼 Reproduciendo tutorial...');
-                crosshairEl.style.display = 'none';
-                isWatching = true;
-                // Animar cámara hacia la TV
-                animateCameraTo(
-                    new THREE.Vector3(-0.35, 0.6, 1.3),
-                    new THREE.Vector3(-0.35, 0.28, -0.1)
-                );
-                // Ocultar la cinta en la mano
-                handVHSGroup.visible = false;
+                // Si tiene cinta, iniciar animación de inserción
                 setTimeout(() => {
-                    playTutorial();
+                    iniciarAnimacionCinta();
                 }, 500);
             } else {
-                // No tiene cinta -> reproducir NoIn.mp4
-                showMessage('📺 Sin cinta');
-                // Animar cámara hacia la TV
-                animateCameraTo(
-                    new THREE.Vector3(-0.35, 0.6, 1.3),
-                    new THREE.Vector3(-0.35, 0.28, -0.1)
-                );
+                // Sin cinta, reproducir NoIn.mp4
                 setTimeout(() => {
                     playNoIn();
                 }, 500);
@@ -545,11 +607,14 @@
     });
     
     // ============================================================
-    // INTERACCIÓN CON LA CINTA VHS
+    // INTERACCIÓN CON LA CINTA VHS (RECOGER)
     // ============================================================
     
     renderer.domElement.addEventListener('click', (e) => {
-        if (cameraAnimating || isWatching || hasVHS) return;
+        if (cameraAnimating) return;
+        if (isWatching) return;
+        if (hasVHS) return;
+        if (animacionCintaActiva) return;
         
         const rect = renderer.domElement.getBoundingClientRect();
         pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -568,22 +633,35 @@
         const vhsIntersects = raycaster.intersectObjects(vhsMeshes);
         if (vhsIntersects.length > 0) {
             hasVHS = true;
-            // Ocultar la cinta del suelo
             vhsGroup.visible = false;
-            // Mostrar la cinta en la mano
             handVHSGroup.visible = true;
-            showMessage('📼 Cinta VHS recogida');
         }
     });
     
     // ============================================================
-    // INICIALIZAR
+    // SALIR DEL MODO TUTORIAL (ESC)
     // ============================================================
     
-    // Iniciar con Screen.mp4 al cargar
-    setTimeout(() => {
-        playScreenLoop();
-    }, 500);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isWatching) {
+            isWatching = false;
+            crosshairEl.style.display = 'block';
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.currentTime = 0;
+            }
+            startCameraReturn();
+            setTimeout(() => {
+                playScreenLoop();
+            }, 300);
+            if (hasVHS) {
+                handVHSGroup.visible = true;
+            }
+            animacionCintaActiva = false;
+            vhsGroup.visible = true;
+            vhsGroup.position.set(0.7, 0.05, 0.08);
+        }
+    });
     
     // ============================================================
     // LOOP PRINCIPAL
@@ -594,11 +672,11 @@
     function animate() {
         const delta = clock.getDelta();
         
-        // Actualizar animación de cámara
         if (cameraAnimating) {
             updateCameraAnimation(delta);
+        } else if (animacionCintaActiva) {
+            actualizarAnimacionCinta(delta);
         } else {
-            // Si no está animando, mantener posición
             if (!isWatching && !cameraAnimating) {
                 camera.position.set(0, 0.9, 3.2);
                 camera.lookAt(0, 0.35, -0.1);
@@ -616,23 +694,6 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-    
-    // --- KEYBOARD SHORTCUTS ---
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isWatching) {
-            isWatching = false;
-            crosshairEl.style.display = 'block';
-            if (videoElement) {
-                videoElement.pause();
-                videoElement.currentTime = 0;
-            }
-            playScreenLoop();
-            if (hasVHS) {
-                handVHSGroup.visible = true;
-            }
-            startCameraReturn();
-        }
     });
     
     console.log('🎬 Amanda the Adventurer - VHS System');
